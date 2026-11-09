@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>MemoDremo</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #6366f1;
+      --border: #334155;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html { height: 100%; }
+
+    body {
+      height: 100vh;
+      height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+    }
+
+    .header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      flex-shrink: 0;
+    }
+
+    .header h1 { font-size: 1.1rem; color: #818cf8; }
+
+    #counter {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .nav-tabs {
+      display: flex;
+      background: #1e293b;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+    }
+
+    .tab-panel {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+    }
+
+    .tab-panel.active { display: flex; }
+
+    #drill-tab .card { flex: 1; min-height: 0; }
+    #decks-tab { overflow-y: auto; }
+
+    .card {
+      position: relative; 
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+
+    #card-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .tag {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      font-size: 0.75rem;
+      background: rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      padding: 6px 12px;
+      border-radius: 12px;
+    }
+
+    .drama-title {
+      font-size: 1rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .main-text {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+
+    .ipa-text {
+      font-size: 1.2rem;
+      color: #94a3b8;
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    .audio-btn {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+      padding-bottom: 5px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .btn-up { background: var(--accent); color: white; }
+    .btn-down { background: var(--border); color: var(--text); }
+
+    .restart-btn { margin-top: 8px; max-width: 220px; }
+
+    #decks-tab h3 {
+      margin-bottom: 10px;
+      color: #818cf8;
+    }
+
+    #decks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .deck-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .deck-item input[type="checkbox"] {
+      transform: scale(1.5);
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .danger-btn {
+      margin-top: 16px;
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid #7f1d1d;
+      background: rgba(127, 29, 29, 0.3);
+      color: #fca5a5;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .sync-note {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>MemoDremo</h1>
+    <span id="counter"></span>
+  </div>
+
+  <div class="nav-tabs">
+    <button id="tab-drill" class="tab-btn active" onclick="switchTab('drill')">Учить</button>
+    <button id="tab-decks" class="tab-btn" onclick="switchTab('decks')">Темы</button>
+  </div>
+
+  <div class="content-area">
+    <div id="drill-tab" class="tab-panel active">
+      <div class="card" onclick="flipCard()">
+        <div id="card-content"></div>
+      </div>
+      <div class="controls">
+        <button class="action-btn btn-up" onclick="swipeCard('up', event)">▲ Снова</button>
+        <button class="action-btn btn-down" onclick="swipeCard('down', event)">▼ Помню</button>
+      </div>
+    </div>
+
+    <div id="decks-tab" class="tab-panel">
+      <h3>Выберите темы для изучения:</h3>
+      <div id="decks-list"></div>
+      <button class="danger-btn" onclick="resetProgress()">Сбросить прогресс</button>
+      <div class="sync-note" id="sync-note"></div>
+    </div>
+  </div>
+
+<script>
+  const ALL_CARDS = [
+    // ===== 1. ПРИВЕТСТВИЯ И ВЕЖЛИВОСТЬ (c1–c30) =====
+    { id: 'c1', drama: "Приветствие (нейтральное)", memo: "Hello!", ipa: "[həˈloʊ]", deck: "Приветствия и вежливость" },
+    { id: 'c2', drama: "Приветствие (неформальное)", memo: "Hi!", ipa: "[haɪ]", deck: "Приветствия и вежливость" },
+    { id: 'c3', drama: "Доброе утро", memo: "Good morning", ipa: "[ɡʊd ˈmɔːrnɪŋ]", deck: "Приветствия и вежливость" },
+    { id: 'c4', drama: "Добрый день", memo: "Good afternoon", ipa: "[ɡʊd ˌæftərˈnuːn]", deck: "Приветствия и вежливость" },
+    { id: 'c5', drama: "Добрый вечер", memo: "Good evening", ipa: "[ɡʊd ˈiːvnɪŋ]", deck: "Приветствия и вежливость" },
+    { id: 'c6', drama: "Спокойной ночи", memo: "Good night", ipa: "[ɡʊd naɪt]", deck: "Приветствия и вежливость" },
+    { id: 'c7', drama: "Как дела?", memo: "How are you?", ipa: "[haʊ ɑːr juː]", deck: "Приветствия и вежливость" },
+    { id: 'c8', drama: "Как оно? (неформально)", memo: "How's it going?", ipa: "[haʊz ɪt ˈɡoʊɪŋ]", deck: "Приветствия и вежливость" },
+    { id: 'c9', drama: "Что нового?", memo: "What's up?", ipa: "[wʌts ʌp]", deck: "Приветствия и вежливость" },
+    { id: 'c10', drama: "Давно не виделись", memo: "Long time no see", ipa: "[lɔːŋ taɪm noʊ siː]", deck: "Приветствия и вежливость" },
+    { id: 'c11', drama: "Приятно познакомиться", memo: "Nice to meet you", ipa: "[naɪs tuː miːt juː]", deck: "Приветствия и вежливость" },
+    { id: 'c12', drama: "Меня зовут...", memo: "My name is...", ipa: "[maɪ neɪm ɪz]", deck: "Приветствия и вежливость" },
+    { id: 'c13', drama: "Я из...", memo: "I'm from...", ipa: "[aɪm frʌm]", deck: "Приветствия и вежливость" },
+    { id: 'c14', drama: "Пожалуйста (просьба)", memo: "Please", ipa: "[pliːz]", deck: "Приветствия и вежливость" },
+    { id: 'c15', drama: "Спасибо", memo: "Thank you", ipa: "[ˈθæŋk juː]", deck: "Приветствия и вежливость" },
+    { id: 'c16', drama: "Большое спасибо", memo: "Thanks a lot", ipa: "[θæŋks ə lɒt]", deck: "Приветствия и вежливость" },
+    { id: 'c17', drama: "Пожалуйста (в ответ)", memo: "You're welcome", ipa: "[jʊər ˈwelkəm]", deck: "Приветствия и вежливость" },
+    { id: 'c18', drama: "Извините (обратить внимание)", memo: "Excuse me", ipa: "[ɪkˈskjuːz miː]", deck: "Приветствия и вежливость" },
+    { id: 'c19', drama: "Прости / Извини", memo: "Sorry", ipa: "[ˈsɒri]", deck: "Приветствия и вежливость" },
+    { id: 'c20', drama: "Без проблем", memo: "No problem", ipa: "[noʊ ˈprɒbləm]", deck: "Приветствия и вежливость" },
+    { id: 'c21', drama: "Всё в порядке", memo: "That's okay", ipa: "[ðæts oʊˈkeɪ]", deck: "Приветствия и вежливость" },
+    { id: 'c22', drama: "Конечно", memo: "Of course", ipa: "[əv kɔːrs]", deck: "Приветствия и вежливость" },
+    { id: 'c23', drama: "Конечно (кратко)", memo: "Sure", ipa: "[ʃʊər]", deck: "Приветствия и вежливость" },
+    { id: 'c24', drama: "Я согласен", memo: "I agree", ipa: "[aɪ əˈɡriː]", deck: "Приветствия и вежливость" },
+    { id: 'c25', drama: "Я не согласен", memo: "I don't agree", ipa: "[aɪ doʊnt əˈɡriː]", deck: "Приветствия и вежливость" },
+    { id: 'c26', drama: "Возможно", memo: "Maybe", ipa: "[ˈmeɪbi]", deck: "Приветствия и вежливость" },
+    { id: 'c27', drama: "Я так думаю", memo: "I think so", ipa: "[aɪ θɪŋk soʊ]", deck: "Приветствия и вежливость" },
+    { id: 'c28', drama: "Я так не думаю", memo: "I don't think so", ipa: "[aɪ doʊnt θɪŋk soʊ]", deck: "Приветствия и вежливость" },
+    { id: 'c29', drama: "До свидания", memo: "Goodbye", ipa: "[ɡʊdˈbaɪ]", deck: "Приветствия и вежливость" },
+    { id: 'c30', drama: "Увидимся / До скорого", memo: "See you later", ipa: "[siː juː ˈleɪtər]", deck: "Приветствия и вежливость" },
+
+    // ===== 2. ПОДДЕРЖКА И МОТИВАЦИЯ (c31–c55) =====
+    { id: 'c31', drama: "Держись!", memo: "Hang in there!", ipa: "[hæŋ ɪn ðeər]", deck: "Поддержка и мотивация" },
+    { id: 'c32', drama: "Успокойся! Расслабься!", memo: "Take it easy!", ipa: "[teɪk ɪt ˈiːzi]", deck: "Поддержка и мотивация" },
+    { id: 'c33', drama: "Продолжай в том же духе!", memo: "Keep it up!", ipa: "[kiːp ɪt ʌp]", deck: "Поддержка и мотивация" },
+    { id: 'c34', drama: "Не вешай нос!", memo: "Keep your chin up!", ipa: "[kiːp jɔːr tʃɪn ʌp]", deck: "Поддержка и мотивация" },
+    { id: 'c35', drama: "В следующий раз повезёт!", memo: "Better luck next time!", ipa: "[ˈbetər lʌk nekst taɪm]", deck: "Поддержка и мотивация" },
+    { id: 'c36', drama: "Молодец! Так держать!", memo: "Way to go!", ipa: "[weɪ tuː ɡoʊ]", deck: "Поддержка и мотивация" },
+    { id: 'c37', drama: "Ни пуха, ни пера!", memo: "Break a leg!", ipa: "[breɪk ə leɡ]", deck: "Поддержка и мотивация" },
+    { id: 'c38', drama: "Удачи!", memo: "Best of luck!", ipa: "[best əv lʌk]", deck: "Поддержка и мотивация" },
+    { id: 'c39', drama: "Я в восторге!", memo: "I'm stoked!", ipa: "[aɪm stoʊkt]", deck: "Поддержка и мотивация" },
+    { id: 'c40', drama: "Какое облегчение!", memo: "What a relief!", ipa: "[wʌt ə rɪˈliːf]", deck: "Поддержка и мотивация" },
+    { id: 'c41', drama: "Вот это настрой!", memo: "That's the spirit!", ipa: "[ðæts ðə ˈspɪrɪt]", deck: "Поддержка и мотивация" },
+    { id: 'c42', drama: "У тебя всё получится!", memo: "You've got this!", ipa: "[juːv ɡɒt ðɪs]", deck: "Поддержка и мотивация" },
+    { id: 'c43', drama: "Не сдавайся!", memo: "Don't give up!", ipa: "[doʊnt ɡɪv ʌp]", deck: "Поддержка и мотивация" },
+    { id: 'c44', drama: "Будь сильным!", memo: "Stay strong!", ipa: "[steɪ strɔːŋ]", deck: "Поддержка и мотивация" },
+    { id: 'c45', drama: "Нет худа без добра", memo: "Every cloud has a silver lining", ipa: "[ˈevri klaʊd hæz ə ˈsɪlvər ˈlaɪnɪŋ]", deck: "Поддержка и мотивация" },
+    { id: 'c46', drama: "Ты отлично справляешься!", memo: "You're doing great!", ipa: "[jʊər ˈduːɪŋ ɡreɪt]", deck: "Поддержка и мотивация" },
+    { id: 'c47', drama: "Здорово!", memo: "Nice one!", ipa: "[naɪs wʌn]", deck: "Поддержка и мотивация" },
+    { id: 'c48', drama: "Молодец!", memo: "Good job!", ipa: "[ɡʊd dʒɒb]", deck: "Поддержка и мотивация" },
+    { id: 'c49', drama: "Не парься", memo: "Don't sweat it", ipa: "[doʊnt swet ɪt]", deck: "Поддержка и мотивация" },
+    { id: 'c50', drama: "Всё будет хорошо", memo: "It'll be fine", ipa: "[ˈɪtl biː faɪn]", deck: "Поддержка и мотивация" },
+    { id: 'c51', drama: "Не переживай", memo: "Don't worry", ipa: "[doʊnt ˈwʌri]", deck: "Поддержка и мотивация" },
+    { id: 'c52', drama: "Я тебя поддерживаю", memo: "I've got your back", ipa: "[aɪv ɡɒt jɔːr bæk]", deck: "Поддержка и мотивация" },
+    { id: 'c53', drama: "Ты можешь это сделать", memo: "You can do it", ipa: "[juː kæn duː ɪt]", deck: "Поддержка и мотивация" },
+    { id: 'c54', drama: "Просто сделай это", memo: "Just do it", ipa: "[dʒʌst duː ɪt]", deck: "Поддержка и мотивация" },
+    { id: 'c55', drama: "Верь в себя", memo: "Believe in yourself", ipa: "[bɪˈliːv ɪn jɔːrˈself]", deck: "Поддержка и мотивация" },
+
+    // ===== 3. ЭМОЦИИ И РЕАКЦИИ (c56–c90) =====
+    { id: 'c56', drama: "Да ты шутишь!", memo: "You gotta be kidding me!", ipa: "[juː ˈɡɒtə biː ˈkɪdɪŋ miː]", deck: "Эмоции и реакции" },
+    { id: 'c57', drama: "Всё в порядке, бывает", memo: "It's not a big deal", ipa: "[ɪts nɒt ə bɪɡ diːl]", deck: "Эмоции и реакции" },
+    { id: 'c58', drama: "Я так и знал!", memo: "I knew it!", ipa: "[aɪ njuː ɪt]", deck: "Эмоции и реакции" },
+    { id: 'c59', drama: "Мой косяк", memo: "My bad", ipa: "[maɪ bæd]", deck: "Эмоции и реакции" },
+    { id: 'c60', drama: "Без обид!", memo: "No hard feelings!", ipa: "[noʊ hɑːrd ˈfiːlɪŋz]", deck: "Эмоции и реакции" },
+    { id: 'c61', drama: "Не бери в голову", memo: "Never mind", ipa: "[ˈnevər maɪnd]", deck: "Эмоции и реакции" },
+    { id: 'c62', drama: "Звучит здорово!", memo: "Sounds good to me", ipa: "[saʊndz ɡʊd tuː miː]", deck: "Эмоции и реакции" },
+    { id: 'c63', drama: "Правда?", memo: "Really?", ipa: "[ˈrɪəli]", deck: "Эмоции и реакции" },
+    { id: 'c64', drama: "Именно так", memo: "Exactly", ipa: "[ɪɡˈzæktli]", deck: "Эмоции и реакции" },
+    { id: 'c65', drama: "Не совсем", memo: "Not really", ipa: "[nɒt ˈrɪəli]", deck: "Эмоции и реакции" },
+    { id: 'c66', drama: "Зависит от ситуации", memo: "It depends", ipa: "[ɪt dɪˈpendz]", deck: "Эмоции и реакции" },
+    { id: 'c67', drama: "Понимаю", memo: "I see", ipa: "[aɪ siː]", deck: "Эмоции и реакции" },
+    { id: 'c68', drama: "Не может быть!", memo: "No way!", ipa: "[noʊ weɪ]", deck: "Эмоции и реакции" },
+    { id: 'c69', drama: "Я в шоке", memo: "I'm shocked", ipa: "[aɪm ʃɒkt]", deck: "Эмоции и реакции" },
+    { id: 'c70', drama: "Как здорово!", memo: "How cool!", ipa: "[haʊ kuːl]", deck: "Эмоции и реакции" },
+    { id: 'c71', drama: "Мне всё равно", memo: "I don't care", ipa: "[aɪ doʊnt keər]", deck: "Эмоции и реакции" },
+    { id: 'c72', drama: "Я сыт по горло", memo: "I'm fed up", ipa: "[aɪm fed ʌp]", deck: "Эмоции и реакции" },
+    { id: 'c73', drama: "Мне жаль", memo: "I'm sorry to hear that", ipa: "[aɪm ˈsɒri tuː hɪər ðæt]", deck: "Эмоции и реакции" },
+    { id: 'c74', drama: "Это отстой", memo: "That sucks", ipa: "[ðæt sʌks]", deck: "Эмоции и реакции" },
+    { id: 'c75', drama: "Круто!", memo: "That's awesome!", ipa: "[ðæts ˈɔːsəm]", deck: "Эмоции и реакции" },
+    { id: 'c76', drama: "Я устал", memo: "I'm exhausted", ipa: "[aɪm ɪɡˈzɔːstɪd]", deck: "Эмоции и реакции" },
+    { id: 'c77', drama: "Я голоден", memo: "I'm starving", ipa: "[aɪm ˈstɑːrvɪŋ]", deck: "Эмоции и реакции" },
+    { id: 'c78', drama: "Мне скучно", memo: "I'm bored", ipa: "[aɪm bɔːrd]", deck: "Эмоции и реакции" },
+    { id: 'c79', drama: "Я счастлив", memo: "I'm happy", ipa: "[aɪm ˈhæpi]", deck: "Эмоции и реакции" },
+    { id: 'c80', drama: "Я грущу", memo: "I'm sad", ipa: "[aɪm sæd]", deck: "Эмоции и реакции" },
+    { id: 'c81', drama: "Я злюсь", memo: "I'm angry", ipa: "[aɪm ˈæŋɡri]", deck: "Эмоции и реакции" },
+    { id: 'c82', drama: "Мне страшно", memo: "I'm scared", ipa: "[aɪm skeərd]", deck: "Эмоции и реакции" },
+    { id: 'c83', drama: "Я взволнован", memo: "I'm excited", ipa: "[aɪm ɪkˈsaɪtɪd]", deck: "Эмоции и реакции" },
+    { id: 'c84', drama: "Мне любопытно", memo: "I'm curious", ipa: "[aɪm ˈkjʊəriəs]", deck: "Эмоции и реакции" },
+    { id: 'c85', drama: "Я в замешательстве", memo: "I'm confused", ipa: "[aɪm kənˈfjuːzd]", deck: "Эмоции и реакции" },
+    { id: 'c86', drama: "Я уверен", memo: "I'm sure", ipa: "[aɪm ʃʊər]", deck: "Эмоции и реакции" },
+    { id: 'c87', drama: "Я не уверен", memo: "I'm not sure", ipa: "[aɪm nɒt ʃʊər]", deck: "Эмоции и реакции" },
+    { id: 'c88', drama: "Это неловко", memo: "That's awkward", ipa: "[ðæts ˈɔːkwərd]", deck: "Эмоции и реакции" },
+    { id: 'c89', drama: "Как неловко!", memo: "How embarrassing!", ipa: "[haʊ ɪmˈbærəsɪŋ]", deck: "Эмоции и реакции" },
+    { id: 'c90', drama: "Это безумие", memo: "That's crazy", ipa: "[ðæts ˈkreɪzi]", deck: "Эмоции и реакции" },
+
+    // ===== 4. ПОВСЕДНЕВНЫЕ ВОПРОСЫ (c91–c130) =====
+    { id: 'c91', drama: "Что ты делаешь?", memo: "What are you doing?", ipa: "[wʌt ɑːr juː ˈduːɪŋ]", deck: "Повседневные вопросы" },
+    { id: 'c92', drama: "Откуда ты?", memo: "Where are you from?", ipa: "[weər ɑːr juː frʌm]", deck: "Повседневные вопросы" },
+    { id: 'c93', drama: "Где ты живёшь?", memo: "Where do you live?", ipa: "[weər duː juː lɪv]", deck: "Повседневные вопросы" },
+    { id: 'c94', drama: "Сколько тебе лет?", memo: "How old are you?", ipa: "[haʊ oʊld ɑːr juː]", deck: "Повседневные вопросы" },
+    { id: 'c95', drama: "Чем ты занимаешься?", memo: "What do you do?", ipa: "[wʌt duː juː duː]", deck: "Повседневные вопросы" },
+    { id: 'c96', drama: "Ты занят?", memo: "Are you busy?", ipa: "[ɑːr juː ˈbɪzi]", deck: "Повседневные вопросы" },
+    { id: 'c97', drama: "У тебя есть время?", memo: "Do you have time?", ipa: "[duː juː hæv taɪm]", deck: "Повседневные вопросы" },
+    { id: 'c98', drama: "Какие планы?", memo: "What's your plan?", ipa: "[wʌts jɔːr plæn]", deck: "Повседневные вопросы" },
+    { id: 'c99', drama: "Что происходит?", memo: "What's going on?", ipa: "[wʌts ˈɡoʊɪŋ ɒn]", deck: "Повседневные вопросы" },
+    { id: 'c100', drama: "Что случилось?", memo: "What happened?", ipa: "[wʌt ˈhæpənd]", deck: "Повседневные вопросы" },
+    { id: 'c101', drama: "Ты в порядке?", memo: "Are you okay?", ipa: "[ɑːr juː oʊˈkeɪ]", deck: "Повседневные вопросы" },
+    { id: 'c102', drama: "Что ты думаешь?", memo: "What do you think?", ipa: "[wʌt duː juː θɪŋk]", deck: "Повседневные вопросы" },
+    { id: 'c103', drama: "Как прошёл день?", memo: "How was your day?", ipa: "[haʊ wʌz jɔːr deɪ]", deck: "Повседневные вопросы" },
+    { id: 'c104', drama: "Который час?", memo: "What time is it?", ipa: "[wʌt taɪm ɪz ɪt]", deck: "Повседневные вопросы" },
+    { id: 'c105', drama: "Куда мы идём?", memo: "Where are we going?", ipa: "[weər ɑːr wiː ˈɡoʊɪŋ]", deck: "Повседневные вопросы" },
+    { id: 'c106', drama: "Что ты хочешь?", memo: "What do you want?", ipa: "[wʌt duː juː wɒnt]", deck: "Повседневные вопросы" },
+    { id: 'c107', drama: "В чём проблема?", memo: "What's the problem?", ipa: "[wʌts ðə ˈprɒbləm]", deck: "Повседневные вопросы" },
+    { id: 'c108', drama: "Что дальше?", memo: "What's next?", ipa: "[wʌts nekst]", deck: "Повседневные вопросы" },
+    { id: 'c109', drama: "Кто это?", memo: "Who is this?", ipa: "[huː ɪz ðɪs]", deck: "Повседневные вопросы" },
+    { id: 'c110', drama: "Можно спросить?", memo: "Can I ask you something?", ipa: "[kæn aɪ æsk juː ˈsʌmθɪŋ]", deck: "Повседневные вопросы" },
+    { id: 'c111', drama: "Ты уверен?", memo: "Are you sure?", ipa: "[ɑːr juː ʃʊər]", deck: "Повседневные вопросы" },
+    { id: 'c112', drama: "Почему нет?", memo: "Why not?", ipa: "[waɪ nɒt]", deck: "Повседневные вопросы" },
+    { id: 'c113', drama: "Сколько это стоит?", memo: "How much is it?", ipa: "[haʊ mʌtʃ ɪz ɪt]", deck: "Повседневные вопросы" },
+    { id: 'c114', drama: "Как тебя зовут?", memo: "What's your name?", ipa: "[wʌts jɔːr neɪm]", deck: "Повседневные вопросы" },
+    { id: 'c115', drama: "Ты говоришь по-английски?", memo: "Do you speak English?", ipa: "[duː juː spiːk ˈɪŋɡlɪʃ]", deck: "Повседневные вопросы" },
+    { id: 'c116', drama: "Я не понимаю", memo: "I don't understand", ipa: "[aɪ doʊnt ˌʌndərˈstænd]", deck: "Повседневные вопросы" },
+    { id: 'c117', drama: "Можете повторить?", memo: "Can you repeat, please?", ipa: "[kæn juː rɪˈpiːt pliːz]", deck: "Повседневные вопросы" },
+    { id: 'c118', drama: "Говорите медленнее", memo: "Speak slower, please", ipa: "[spiːk ˈsloʊər pliːz]", deck: "Повседневные вопросы" },
+    { id: 'c119', drama: "Что вы имеете в виду?", memo: "What do you mean?", ipa: "[wʌt duː juː miːn]", deck: "Повседневные вопросы" },
+    { id: 'c120', drama: "Это звучит хорошо", memo: "That sounds good", ipa: "[ðæt saʊndz ɡʊd]", deck: "Повседневные вопросы" },
+    { id: 'c121', drama: "Это отлично", memo: "That's fine", ipa: "[ðæts faɪn]", deck: "Повседневные вопросы" },
+    { id: 'c122', drama: "Это здорово", memo: "That's great", ipa: "[ðæts ɡreɪt]", deck: "Повседневные вопросы" },
+    { id: 'c123', drama: "Дай подумать", memo: "Let me see", ipa: "[let miː siː]", deck: "Повседневные вопросы" },
+    { id: 'c124', drama: "Одну минуту", memo: "One moment, please", ipa: "[wʌn ˈmoʊmənt pliːz]", deck: "Повседневные вопросы" },
+    { id: 'c125', drama: "Вы можете помочь?", memo: "Could you help me?", ipa: "[kʊd juː help miː]", deck: "Повседневные вопросы" },
+    { id: 'c126', drama: "Как пройти к...?", memo: "How do I get to...?", ipa: "[haʊ duː aɪ ɡet tuː]", deck: "Повседневные вопросы" },
+    { id: 'c127', drama: "Где ближайший...?", memo: "Where is the nearest...?", ipa: "[weər ɪz ðə ˈnɪərɪst]", deck: "Повседневные вопросы" },
+    { id: 'c128', drama: "Я просто смотрю", memo: "I'm just browsing", ipa: "[aɪm dʒʌst ˈbraʊzɪŋ]", deck: "Повседневные вопросы" },
+    { id: 'c129', drama: "У вас есть это в другом размере?", memo: "Do you have this in another size?", ipa: "[duː juː hæv ðɪs ɪn əˈnʌðər saɪz]", deck: "Повседневные вопросы" },
+    { id: 'c130', drama: "Я бы хотел...", memo: "I would like...", ipa: "[aɪ wʊd laɪk]", deck: "Повседневные вопросы" },
+
+    // ===== 5. КАФЕ, ПОКУПКИ, ПУТЕШЕСТВИЯ (c131–c165) =====
+    { id: 'c131', drama: "Мне то же самое", memo: "I'll have the same", ipa: "[aɪl hæv ðə seɪm]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c132', drama: "Можно счёт?", memo: "Could we get the check?", ipa: "[kʊd wiː ɡet ðə tʃek]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c133', drama: "Я в порядке, спасибо (отказ)", memo: "I'm good, thanks", ipa: "[aɪm ɡʊd θæŋks]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c134', drama: "Можно меню?", memo: "Can I see the menu?", ipa: "[kæn aɪ siː ðə ˈmenjuː]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c135', drama: "Что вы посоветуете?", memo: "What do you recommend?", ipa: "[wʌt duː juː ˌrekəˈmend]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c136', drama: "Это блюдо острое?", memo: "Is this dish spicy?", ipa: "[ɪz ðɪs dɪʃ ˈspaɪsi]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c137', drama: "У меня аллергия на...", memo: "I'm allergic to...", ipa: "[aɪm əˈlɜːrdʒɪk tuː]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c138', drama: "Один билет до..., пожалуйста", memo: "One ticket to..., please", ipa: "[wʌn ˈtɪkɪt tuː pliːz]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c139', drama: "Где находится...?", memo: "Where is...?", ipa: "[weər ɪz]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c140', drama: "Где обмен валюты?", memo: "Where is the currency exchange?", ipa: "[weər ɪz ðə ˈkɜːrənsi ɪksˈtʃeɪndʒ]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c141', drama: "Где выдача багажа?", memo: "Where is the baggage claim?", ipa: "[weər ɪz ðə ˈbæɡɪdʒ kleɪm]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c142', drama: "Мой рейс вылетает в...", memo: "My flight leaves at...", ipa: "[maɪ flaɪt liːvz æt]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c143', drama: "Я потерял паспорт", memo: "I've lost my passport", ipa: "[aɪv lɒst maɪ ˈpæspɔːrt]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c144', drama: "Помогите!", memo: "Help!", ipa: "[help]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c145', drama: "Вызовите врача", memo: "Call a doctor", ipa: "[kɔːl ə ˈdɒktər]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c146', drama: "Я хочу это купить", memo: "I want to buy this", ipa: "[aɪ wɒnt tuː baɪ ðɪs]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c147', drama: "Можно расплатиться картой?", memo: "Can I pay by card?", ipa: "[kæn aɪ peɪ baɪ kɑːrd]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c148', drama: "Это слишком дорого", memo: "That's too expensive", ipa: "[ðæts tuː ɪkˈspensɪv]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c149', drama: "Есть скидка?", memo: "Is there a discount?", ipa: "[ɪz ðeər ə ˈdɪskaʊnt]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c150', drama: "Я возьму это", memo: "I'll take it", ipa: "[aɪl teɪk ɪt]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c151', drama: "Где примерочная?", memo: "Where is the fitting room?", ipa: "[weər ɪz ðə ˈfɪtɪŋ ruːm]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c152', drama: "Можно примерить?", memo: "Can I try it on?", ipa: "[kæn aɪ traɪ ɪt ɒn]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c153', drama: "Это не подходит", memo: "It doesn't fit", ipa: "[ɪt ˈdʌzənt fɪt]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c154', drama: "Я верну это", memo: "I'd like to return this", ipa: "[aɪd laɪk tuː rɪˈtɜːrn ðɪs]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c155', drama: "Где ближайшее кафе?", memo: "Where is the nearest cafe?", ipa: "[weər ɪz ðə ˈnɪərɪst kæˈfeɪ]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c156', drama: "Столик на двоих, пожалуйста", memo: "A table for two, please", ipa: "[ə ˈteɪbl fɔːr tuː pliːz]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c157', drama: "Можно воды?", memo: "Can I have some water?", ipa: "[kæn aɪ hæv sʌm ˈwɔːtər]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c158', drama: "Это всё", memo: "That's all", ipa: "[ðæts ɔːl]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c159', drama: "Сдачи не надо", memo: "Keep the change", ipa: "[kiːp ðə tʃeɪndʒ]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c160', drama: "Где туалет?", memo: "Where is the restroom?", ipa: "[weər ɪz ðə ˈrestruːm]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c161', drama: "Я заблудился", memo: "I'm lost", ipa: "[aɪm lɒst]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c162', drama: "Покажите на карте", memo: "Show me on the map", ipa: "[ʃoʊ miː ɒn ðə mæp]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c163', drama: "Это далеко?", memo: "Is it far?", ipa: "[ɪz ɪt fɑːr]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c164', drama: "Как добраться на метро?", memo: "How do I get there by metro?", ipa: "[haʊ duː aɪ ɡet ðeər baɪ ˈmetroʊ]", deck: "Кафе, покупки, путешествия" },
+    { id: 'c165', drama: "Вызовите такси, пожалуйста", memo: "Call a taxi, please", ipa: "[kɔːl ə ˈtæksi pliːz]", deck: "Кафе, покупки, путешествия" },
+
+    // ===== 6. ИДИОМЫ И УСТОЙЧИВЫЕ ВЫРАЖЕНИЯ (c166–c200) =====
+    { id: 'c166', drama: "Пара пустяков", memo: "A piece of cake", ipa: "[ə piːs əv keɪk]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c167', drama: "Раз в сто лет (очень редко)", memo: "Once in a blue moon", ipa: "[wʌns ɪn ə bluː muːn]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c168', drama: "Убить двух зайцев одним выстрелом", memo: "Kill two birds with one stone", ipa: "[kɪl tuː bɜːrdz wɪð wʌn stoʊn]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c169', drama: "После дождичка в четверг (никогда)", memo: "When pigs fly", ipa: "[wen pɪɡz flaɪ]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c170', drama: "Брать свои слова обратно", memo: "Eat one's words", ipa: "[iːt wʌnz wɜːrdz]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c171', drama: "Знать, где собака зарыта", memo: "Know where the bodies are buried", ipa: "[noʊ weər ðə ˈbɒdiz ɑːr ˈberid]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c172', drama: "Поезд ушёл (упустить шанс)", memo: "Miss the boat", ipa: "[mɪs ðə boʊt]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c173', drama: "Весь внимание", memo: "All ears", ipa: "[ɔːl ɪərz]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c174', drama: "Легко находить общий язык", memo: "Get along well with people", ipa: "[ɡet əˈlɒŋ wel wɪð ˈpiːpl]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c175', drama: "Сделка есть сделка", memo: "A bargain is a bargain", ipa: "[ə ˈbɑːrɡən ɪz ə ˈbɑːrɡən]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c176', drama: "Держать в уме", memo: "Keep in mind", ipa: "[kiːp ɪn maɪnd]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c177', drama: "Вложить душу во что-то", memo: "Put one's heart and soul into", ipa: "[pʊt wʌnz hɑːrt ænd soʊl ˈɪntuː]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c178', drama: "Волей-неволей", memo: "Willy-nilly", ipa: "[ˈwɪli ˈnɪli]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c179', drama: "Куй железо, пока горячо", memo: "Strike while the iron is hot", ipa: "[straɪk waɪl ðə ˈaɪərn ɪz hɒt]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c180', drama: "Продаваться как горячие пирожки", memo: "Sell like hotcakes", ipa: "[sel laɪk ˈhɒtkeɪks]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c181', drama: "Будь здоров! (после чихания)", memo: "Bless you!", ipa: "[bles juː]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c182', drama: "Всё путём / Нормально", memo: "It's all good", ipa: "[ɪts ɔːl ɡʊd]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c183', drama: "Дойти до сути", memo: "Cut to the chase", ipa: "[kʌt tuː ðə tʃeɪs]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c184', drama: "Следи за чем-то", memo: "Keep an eye on", ipa: "[kiːp ən aɪ ɒn]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c185', drama: "Оставить кого-то в покое", memo: "Let someone alone", ipa: "[let ˈsʌmwʌn əˈloʊn]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c186', drama: "Сохранить лицо / Приличия", memo: "Keep up appearances", ipa: "[kiːp ʌp əˈpɪərənsɪz]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c187', drama: "Решиться на что-то", memo: "Make up one's mind", ipa: "[meɪk ʌp wʌnz maɪnd]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c188', drama: "В чём дело?", memo: "What is the matter?", ipa: "[wʌt ɪz ðə ˈmætər]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c189', drama: "По уши влюблён", memo: "Head over heels", ipa: "[hed ˈoʊvər hiːlz]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c190', drama: "Каждому своё", memo: "To each their own", ipa: "[tuː iːtʃ ðeər oʊn]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c191', drama: "Палка о двух концах", memo: "A double-edged sword", ipa: "[ə ˈdʌbl edʒd sɔːrd]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c192', drama: "Не повезло / Провал", memo: "Tough luck", ipa: "[tʌf lʌk]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c193', drama: "Держать кулачки", memo: "Keep one's fingers crossed", ipa: "[kiːp wʌnz ˈfɪŋɡərz krɒst]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c194', drama: "Как две капли воды", memo: "Like two peas in a pod", ipa: "[laɪk tuː piːz ɪn ə pɒd]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c195', drama: "В яблочко!", memo: "Hit the nail on the head", ipa: "[hɪt ðə neɪl ɒn ðə hed]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c196', drama: "Лёгок на помине", memo: "Speak of the devil", ipa: "[spiːk əv ðə ˈdevl]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c197', drama: "Кот наплакал", memo: "Next to nothing", ipa: "[nekst tuː ˈnʌθɪŋ]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c198', drama: "С глазу на глаз", memo: "Face to face", ipa: "[feɪs tuː feɪs]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c199', drama: "Из кожи вон лезть", memo: "Go the extra mile", ipa: "[ɡoʊ ði ˈekstrə maɪl]", deck: "Идиомы и устойчивые выражения" },
+    { id: 'c200', drama: "Время летит", memo: "Time flies", ipa: "[taɪm flaɪz]", deck: "Идиомы и устойчивые выражения" }
+  ];
+
+  const STORAGE_KEY = 'memodremo_state_v3';
+  const telegram = window.Telegram?.WebApp;
+  const cloudStorage = telegram?.CloudStorage;
+
+  const allDecks = [...new Set(ALL_CARDS.map((card) => card.deck))];
+
+  let state = {
+    decks: [...allDecks],
+    remaining: null,
+    completed: []
+  };
+
+  let flipped = false;
+  let current = null;
+  let saveTimer = null;
+
+  function activeCards() {
+    return ALL_CARDS.filter((card) => state.decks.includes(card.deck));
+  }
+
+  function cardById(id) {
+    return ALL_CARDS.find((card) => card.id === id) || null;
+  }
+
+  function shuffle(array) {
+    const result = [...array];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+
+  function startSession() {
+    const cards = activeCards();
+    state.remaining = cards.length ? shuffle(cards).map((card) => card.id) : [];
+    state.completed = [];
+    flipped = false;
+    current = state.remaining.length ? cardById(state.remaining[0]) : null;
+    saveSoon();
+    render();
+  }
+
+  function rebuildCurrent() {
+    current = state.remaining && state.remaining.length
+      ? cardById(state.remaining[0])
+      : null;
+  }
+
+  function saveSoon() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 300);
+  }
+
+  function saveNow() {
+    const payload = JSON.stringify(state);
+
+    try {
+      localStorage.setItem(STORAGE_KEY, payload);
+    } catch (error) {
+      console.warn('localStorage save failed:', error);
+    }
+
+    if (cloudStorage) {
+      try {
+        cloudStorage.setItem(STORAGE_KEY, payload, (error) => {
+          if (error) console.warn('CloudStorage save failed:', error);
+        });
+      } catch (error) {
+        console.warn('CloudStorage save error:', error);
+      }
+    }
+  }
+
+  function readLocalState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function loadState() {
+    return new Promise((resolve) => {
+      const fromLocal = () => resolve(readLocalState());
+
+      if (!cloudStorage) {
+        fromLocal();
+        return;
+      }
+
+      try {
+        cloudStorage.getItem(STORAGE_KEY, (error, value) => {
+          if (error) {
+            console.warn('CloudStorage load failed:', error);
+            fromLocal();
+            return;
+          }
+
+          if (value) {
+            try {
+              resolve(JSON.parse(value));
+              return;
+            } catch (parseError) {
+              console.warn('CloudStorage parse failed:', parseError);
+            }
+          }
+
+          fromLocal();
+        });
+      } catch (error) {
+        console.warn('CloudStorage load error:', error);
+        fromLocal();
+      }
+    });
+  }
+
+  function applyLoadedState(saved) {
+    if (!saved || typeof saved !== 'object') {
+      startSession();
+      return;
+    }
+
+    if (Array.isArray(saved.decks)) {
+      state.decks = saved.decks.filter((deck) => allDecks.includes(deck));
+    }
+
+    if (!Array.isArray(saved.remaining)) {
+      startSession();
+      return;
+    }
+
+    const activeIds = new Set(activeCards().map((card) => card.id));
+    const completedSet = new Set(Array.isArray(saved.completed) ? saved.completed : []);
+
+    let remaining = saved.remaining.filter((id) => activeIds.has(id));
+
+    const knownIds = new Set(remaining);
+    const trulyNew = [...activeIds].filter(
+      (id) => !knownIds.has(id) && !completedSet.has(id)
+    );
+    remaining = [...remaining, ...trulyNew];
+
+    state.remaining = remaining;
+    state.completed = [...completedSet].filter((id) => activeIds.has(id));
+
+    rebuildCurrent();
+    flipped = false;
+    render();
+  }
+
+  function initTelegram() {
+    const syncNote = document.getElementById('sync-note');
+
+    if (!telegram) {
+      syncNote.textContent =
+        'Прогресс сохраняется в этом браузере. Открой приложение через Telegram, чтобы синхронизировать его между устройствами.';
+      return;
+    }
+
+    try {
+      telegram.ready();
+      telegram.expand();
+      telegram.setHeaderColor('#1e293b');
+      telegram.setBackgroundColor('#0f172a');
+    } catch (error) {
+      console.warn('Telegram init warning:', error);
+    }
+
+    if (cloudStorage) {
+      syncNote.textContent =
+        'Прогресс синхронизируется с вашим аккаунтом Telegram.';
+    } else {
+      syncNote.textContent =
+        'Облачное хранилище недоступно — прогресс сохраняется на этом устройстве.';
+    }
+  }
+
+  function haptic(style = 'light') {
+    try {
+      telegram?.HapticFeedback?.impactOccurred(style);
+    } catch (error) {
+      // игнорируем
+    }
+  }
+
+  function updateCounter() {
+    const total = activeCards().length;
+    const counter = document.getElementById('counter');
+
+    if (total === 0) {
+      counter.textContent = 'Нет тем';
+      return;
+    }
+
+    const left = state.remaining ? state.remaining.length : total;
+    counter.textContent = `Осталось: ${left} / ${total}`;
+  }
+
+  function render() {
+    updateCounter();
+
+    if (state.remaining === null) {
+      document.getElementById('card-content').innerHTML =
+        '<div class="ipa-text">Загрузка…</div>';
+      return;
+    }
+
+    renderCard();
+  }
+
+  function renderCard() {
+    const cardContent = document.getElementById('card-content');
+    const total = activeCards().length;
+
+    if (total === 0) {
+      cardContent.innerHTML = `
+        <div class="tag">Пусто</div>
+        <div class="main-text">Выберите хотя бы одну тему</div>
+        <div class="ipa-text">Откройте вкладку «Темы»</div>
+      `;
+      return;
+    }
+
+    if (!current) {
+      cardContent.innerHTML = `
+        <div class="tag">Готово</div>
+        <div class="main-text">Все карточки повторены</div>
+        <div class="ipa-text">Можно начать заново или изменить темы</div>
+        <button class="action-btn btn-up restart-btn" type="button">Начать заново</button>
+      `;
+
+      const restartBtn = cardContent.querySelector('.restart-btn');
+      if (restartBtn) {
+        restartBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          startSession();
+        });
+      }
+
+      return;
+    }
+
+    if (!flipped) {
+      cardContent.innerHTML = `
+        <div class="tag">${current.deck}</div>
+        <div class="drama-title">Вопрос</div>
+        <div class="main-text">${current.drama}</div>
+        <div class="ipa-text">Нажмите на карточку, чтобы увидеть ответ</div>
+      `;
+      return;
+    }
+
+    cardContent.innerHTML = `
+      <div class="tag">${current.deck}</div>
+      <div class="drama-title">Ответ</div>
+      <div class="main-text">${current.memo}</div>
+      <div class="ipa-text">${current.ipa}</div>
+      <button class="audio-btn" type="button" aria-label="Прослушать">🔊</button>
+    `;
+
+    const audioBtn = cardContent.querySelector('.audio-btn');
+    if (audioBtn) {
+      audioBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        speak(current.memo);
+      });
+    }
+  }
+
+  function renderDecks() {
+    const list = document.getElementById('decks-list');
+    list.innerHTML = '';
+
+    allDecks.forEach((deck) => {
+      const label = document.createElement('label');
+      label.className = 'deck-item';
+
+      const title = document.createElement('span');
+      title.textContent = deck;
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = state.decks.includes(deck);
+      checkbox.dataset.deck = deck;
+
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          if (!state.decks.includes(deck)) state.decks.push(deck);
+        } else {
+          state.decks = state.decks.filter((item) => item !== deck);
+        }
+
+        startSession();
+        renderDecks();
+      });
+
+      label.appendChild(title);
+      label.appendChild(checkbox);
+      list.appendChild(label);
+    });
+  }
+
+  function flipCard() {
+    if (!current) return;
+    flipped = !flipped;
+    haptic('soft');
+    renderCard();
+  }
+
+  function swipeCard(direction, event) {
+    if (event) event.stopPropagation();
+    if (!current || !state.remaining) return;
+
+    haptic('light');
+
+    if (direction === 'down') {
+      const id = state.remaining.shift();
+      if (!state.completed.includes(id)) state.completed.push(id);
+    } else {
+      const id = state.remaining.shift();
+      state.remaining.push(id);
+    }
+
+    rebuildCurrent();
+    flipped = false;
+    saveSoon();
+    render();
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((button) => {
+      button.classList.toggle('active', button.id === `tab-${name}`);
+    });
+
+    document.querySelectorAll('.tab-panel').forEach((panel) => {
+      panel.classList.toggle('active', panel.id === `${name}-tab`);
+    });
+
+    if (name === 'decks') renderDecks();
+  }
+
+  function resetProgress() {
+    const confirmed = window.confirm('Сбросить прогресс и начать все карточки заново?');
+    if (!confirmed) return;
+
+    startSession();
+  }
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  async function boot() {
+    initTelegram();
+    renderDecks();
+    render();
+
+    const saved = await loadState();
+    applyLoadedState(saved);
+    renderDecks();
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') saveNow();
+    });
+
+    window.addEventListener('pagehide', saveNow);
+
+    if (telegram) {
+      try {
+        telegram.onEvent('viewportChanged', () => {});
+      } catch (error) {
+        // не критично
+      }
+    }
+  }
+
+  boot();
+</script>
+</body>
+</html>
